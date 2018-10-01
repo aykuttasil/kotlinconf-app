@@ -42,8 +42,36 @@ private val client = HttpClient {
     }
 }
 
+private fun AllData.fixRoomNames(): AllData {
+    var maxId = rooms.maxBy { it.id }!!.id
+    var currentRooms = rooms
+
+    val newSessions = sessions.map { session ->
+        if (session.startsAt?.startsWith("2018-10-03") != true) return@map session
+        val name = session.title
+        val (roomNameStart, roomNameEnd) = name.indexOf('[') to name.lastIndexOf(']')
+
+        if (roomNameStart == -1 || roomNameEnd == -1 ||
+            roomNameEnd <= roomNameStart + 1 || roomNameStart + 1 >= name.length
+        ) return@map session
+
+        val roomName = name.substring(roomNameStart + 1, roomNameEnd)
+        val title = name.substring(0, roomNameStart)
+
+        val newRoom = Room(name = roomName, id = maxId, sort = 16)
+        maxId++
+        currentRooms += newRoom
+        return@map session.copy(title = title, roomId = newRoom.id)
+    }
+
+    return copy(
+        rooms = currentRooms,
+        sessions = newSessions
+    )
+}
+
 suspend fun synchronizeWithSessionize(sessionizeUrl: String) {
-    val data = client.get<AllData>(sessionizeUrl)
+    val data = client.get<AllData>(sessionizeUrl).fixRoomNames()
     sessionizeData = SessionizeData(data)
 }
 
