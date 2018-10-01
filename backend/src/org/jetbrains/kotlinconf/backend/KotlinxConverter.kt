@@ -17,7 +17,15 @@ class KotlinxConverter() : ContentConverter {
         contentType: ContentType,
         value: Any
     ): Any? {
-        val text = JSON.stringify(value::class.serializer() as SerializationStrategy<Any>, value)
+        val text = if (value is List<*>) {
+            if (value.isEmpty()) return "{}"
+            else {
+                val item: Any = value.first() as Any
+                JSON.stringify(item::class.serializer().list as SerializationStrategy<Any>, value)
+            }
+        } else {
+            JSON.stringify(value::class.serializer() as SerializationStrategy<Any>, value)
+        }
         return TextContent(text, contentType.withCharset(context.call.suitableCharset()))
     }
 

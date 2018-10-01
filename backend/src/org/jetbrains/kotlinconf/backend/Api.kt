@@ -118,6 +118,12 @@ fun Routing.apiFavorite(database: Database, production: Boolean) {
 
 private val dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
 
+private fun PipelineContext<*, ApplicationCall>.requireSecret() {
+    val providedSecret = call.parameters["secret"]
+    val realSecret = System.getenv("SERVER_SECRET").takeUnless { it.isNullOrBlank() } ?: "TestingSecret"
+    if (providedSecret != realSecret) throw SecretInvalidError()
+}
+
 /*
 GET http://localhost:8080/votes
 Accept: application/json
@@ -131,6 +137,7 @@ fun Routing.apiVote(database: Database, production: Boolean) {
             call.respond(votes)
         }
         get("all") {
+            requireSecret()
             val votes = database.getAllVotes()
             call.respond(votes)
         }
@@ -210,9 +217,9 @@ fun Routing.apiSession() {
         get("{sessionId}") {
             val data = getSessionizeData()
             val id = call.parameters["sessionId"] ?: throw BadRequest()
-            val sessions = data.allData.sessions?.singleOrNull { it.id == id } ?: throw NotFound()
-            call.withETag(sessions.hashCode().toString(), putHeader = true) {
-                call.respond(sessions)
+            val session = data.allData.sessions?.singleOrNull { it.id == id } ?: throw NotFound()
+            call.withETag(session.hashCode().toString(), putHeader = true) {
+                call.respond(session)
             }
         }
     }
