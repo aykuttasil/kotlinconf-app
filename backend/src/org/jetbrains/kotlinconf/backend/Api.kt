@@ -161,8 +161,6 @@ fun Routing.apiVote(database: Database, production: Boolean) {
 
             if (!votingPeriodStarted)
                 return@post call.respond(comeBackLater)
-            if (votingPeriodEnded)
-                return@post call.respond(tooLate)
 
             val timestamp = LocalDateTime.now(Clock.systemUTC())
             if (database.changeVote(principal.token, sessionId, rating, timestamp))
